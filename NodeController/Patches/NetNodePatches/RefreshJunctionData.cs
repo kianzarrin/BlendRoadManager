@@ -129,15 +129,15 @@ namespace NodeController.Patches {
                     //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix3 * Rotate();
                     //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix2 * Rotate();
 
-                    //data.m_dataMatrix0 = m_dataMatrix0;
-                    //data.m_dataMatrix1 = m_dataMatrix1;
-                    //data.m_extraData.m_dataMatrix2 = extra_dataMatrix2;
-                    //data.m_extraData.m_dataMatrix3 = extra_dataMatrix3;
+                    data.m_dataMatrix0 = m_dataMatrix0;
+                    data.m_dataMatrix1 = m_dataMatrix1;
+                    data.m_extraData.m_dataMatrix2 = extra_dataMatrix2;
+                    data.m_extraData.m_dataMatrix3 = extra_dataMatrix3;
 
-                    data.m_dataMatrix0 = m_dataMatrix1;
-                    data.m_dataMatrix1 = m_dataMatrix0;
-                    data.m_extraData.m_dataMatrix2 = extra_dataMatrix3;
-                    data.m_extraData.m_dataMatrix3 = extra_dataMatrix2;
+                    //data.m_dataMatrix0 = m_dataMatrix1;
+                    //data.m_dataMatrix1 = m_dataMatrix0;
+                    //data.m_extraData.m_dataMatrix2 = extra_dataMatrix3;
+                    //data.m_extraData.m_dataMatrix3 = extra_dataMatrix2;
                 }
             }
 
