@@ -14,7 +14,7 @@ namespace NodeController {
     using CSURUtil = Util.CSURUtil;
     using Log = KianCommons.Log;
     using static KianCommons.HelpersExtensions;
-    using static KianCommons.AssemblyTypeExtensions;
+    using static KianCommons.ReflectionHelpers;
     using static KianCommons.Assertion;
     using System.Linq;
 

@@ -53,7 +53,8 @@ namespace NodeController.Patches {
             Assertion.AssertNotNull(Settings.GameConfig, "Settings.GameConfig");
             if (data == null && !Settings.GameConfig.UnviversalSlopeFixes)
                 return;
-            //Log.Debug($"CalculateCorner2.PostFix(segmentID={segmentID} start={start} leftSide={leftSide}): cornerDir={cornerDirection}");
+
+            //Log.Debug($"CalculateCorner2.PostFix(segmentID={segmentID} start={start} leftSide={leftSide}): cornerDir={cornerDirection}",false);
 
 
             ushort nodeID = segmentID.ToSegment().GetNode(start);

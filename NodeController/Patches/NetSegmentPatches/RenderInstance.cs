@@ -1,64 +1,17 @@
-namespace NodeController.Patches
-{
+namespace NodeController.Patches {
+    using ColossalFramework;
     using HarmonyLib;
-    using KianCommons;
     using JetBrains.Annotations;
-    using System;
+    using KianCommons.Patches;
+    using NodeController.Util;
     using System.Collections.Generic;
     using System.Reflection;
     using System.Reflection.Emit;
     using static KianCommons.Patches.TranspilerUtils;
-    using NodeController.Util;
-    using UnityEngine;
+    using KianCommons;
 
     [HarmonyPatch]
-    class RenderInstance
-    {
-        /// <param name="leftSide">left side going away from the junction</param>
-        static Matrix4x4 CalculateNameMatrix(Matrix4x4 mat, ushort segmentID) {
-            ref NetSegment segment = ref segmentID.ToSegment();
-            var segStart = SegmentEndManager.Instance.GetAt(segmentID, true);
-            var segEnd = SegmentEndManager.Instance.GetAt(segmentID, false);
-
-            Vector3 startPos, endPos, startDir, endDir;
-            if (segStart != null) {
-                startPos = segStart.LeftCorner.Pos;
-                startDir = segStart.LeftCorner.Dir;
-            }else {
-                startPos = segment.m_startNode.ToNode().m_position;
-                startDir = segment.m_startDirection;
-            }
-
-            if (segEnd != null) {
-                endPos = segEnd.LeftCorner.Pos;
-                endDir = segEnd.LeftCorner.Dir;
-            } else {
-                endPos = segment.m_endNode.ToNode().m_position;
-                endDir = segment.m_endDirection;
-            }
-
-
-            NetSegment.CalculateMiddlePoints(
-                startPos, startDir, endPos, endDir, true, true, out var b, out var c);
-            return NetSegment.CalculateControlMatrix(
-                startPos, b, c, endPos, (startPos+endPos)*0.5f, 1f);
-        }
-
-        static void CalculateNameMatrix2(ushort segmentID, ref Vector3 startPos, ref Vector3 startDir, ref Vector3 endPos, ref Vector3 endDir) {
-            ref NetSegment segment = ref segmentID.ToSegment();
-            var segStart = SegmentEndManager.Instance.GetAt(segmentID, true);
-            var segEnd = SegmentEndManager.Instance.GetAt(segmentID, false);
-
-            if (segStart != null) {
-                startPos = segStart.LeftCorner.Pos;
-                startDir = segStart.LeftCorner.Dir;
-            }
-            if (segEnd != null) {
-                endPos = segEnd.LeftCorner.Pos;
-                endDir = segEnd.LeftCorner.Dir;
-            }
-        }
-
+    class RenderInstance {
         [UsedImplicitly]
         static MethodBase TargetMethod() {
             return typeof(NetSegment).GetMethod(
@@ -67,40 +20,41 @@ namespace NodeController.Patches
                     throw new System.Exception("RenderInstance Could not find target method.");
         }
 
-        static FieldInfo f_dataMatrix2 =
-            typeof(RenderManager.Instance).GetField(nameof(RenderManager.Instance.m_dataMatrix2)) ??
-            throw new Exception("f_dataMatrix2 is null");
+        public static bool Flip(bool turnAround, ushort segmentID, ref NetInfo.Segment segmentInfo) {
+            if (turnAround)
+                return turnAround; // already turned around
+            var flags = segmentID.ToSegment().m_flags;
+            if (!flags.CheckFlags(segmentInfo.m_backwardRequired, segmentInfo.m_backwardForbidden))
+                return turnAround; // can't turn around.
 
-        static MethodInfo mCalculateNameMatrix = AccessTools.DeclaredMethod(
-            typeof(CalculateCornerPatch), nameof(CalculateNameMatrix)) ??
-            throw new Exception("mCalculateNameMatrix is null");
+            // it works both way. turn around oneway inverted segment:
+            bool invert = segmentID.ToSegment().m_flags.IsFlagSet(NetSegment.Flags.Invert);
+            var info = segmentID.ToSegment().Info;
+            bool oneway = info.m_hasForwardVehicleLanes != info.m_hasBackwardVehicleLanes;
+            return oneway && invert; 
+        }
 
-        static MethodInfo targetMethod_ = TargetMethod() as MethodInfo;
+        static MethodInfo mFlip = GetMethod(typeof(RenderInstance), nameof(Flip));
+        static MethodInfo mCheckFlags = GetMethod(typeof(NetInfo.Segment), nameof(NetInfo.Segment.CheckFlags));
 
         [HarmonyBefore(CSURUtil.HARMONY_ID)]
-        public static IEnumerable<CodeInstruction> Transpiler(ILGenerator il, IEnumerable<CodeInstruction> instructions) {
-            // apply the flat junctions traspiler
-            instructions = FlatJunctionsCommons.ModifyFlatJunctionsTranspiler(instructions, targetMethod_);
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original) {
+            var codes = instructions.ToCodeList();
+            int index = codes.FindIndex(c => c.Calls(mCheckFlags));
+            var ldaTurnAround = codes[index - 1];
+            var loc = (LocalBuilder)ldaTurnAround.operand;
+            Log.Debug($"loc={loc.LocalIndex}");
+            index = codes.FindIndex(c => c.IsLdLoc(loc.LocalIndex));
+            codes.InsertInstructions(index + 1, // insert after
+                new[]{
+                    // ldloc turnAround is already in the stack
+                    GetLDArg(original,"segmentID"),
+                    new CodeInstruction(OpCodes.Ldarga_S, 0), // load ref this
+                    new CodeInstruction(OpCodes.Call, mFlip)
+                });
 
-            CodeInstruction ldarg_segmentID = GetLDArg(targetMethod_, "segmentID"); // push startNodeID into stack,
-            CodeInstruction call_CalculateNameMatrix = new CodeInstruction(OpCodes.Call, mCalculateNameMatrix);
-
-            // TODO complete transpiler.
-            int n = 0;
-            foreach (var instruction in instructions) {
-                yield return instruction;
-                bool is_stfld_dataMatrix2 =
-                    instruction.opcode == OpCodes.Stfld && instruction.operand == f_dataMatrix2;
-                if (is_stfld_dataMatrix2) {
-                    n++;
-                    yield return ldarg_segmentID;
-                    yield return call_CalculateNameMatrix;
-                }
-            }
-
-            Log.Debug($"TRANSPILER CalculateCornerPatch: Successfully patched NetSegment.CalculateCorner(). " +
-                $"found {n} instances of Ldfld NetInfo.m_minCornerOffset");
-            yield break;
+            return codes;
         }
+
     }
 }

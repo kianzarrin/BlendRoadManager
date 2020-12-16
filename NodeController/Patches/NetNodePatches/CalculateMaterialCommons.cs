@@ -2,9 +2,6 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-/* Notes
-
- */
 
 namespace NodeController.Patches {
     using System;
@@ -127,7 +124,7 @@ namespace NodeController.Patches {
             var code = codes[index + 1];
             Assertion.Assert(IsStLoc(code), $"IsStLoc(code) | code={code}");
 
-            return BuildLdLocFromStLoc(code);
+            return code.BuildLdLocFromStLoc();
         }
 
 

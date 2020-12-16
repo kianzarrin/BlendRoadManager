@@ -20,6 +20,7 @@ namespace NodeController.LifeCycle {
         public static bool Loaded;
 
         public static void Enable() {
+            Log.Buffered = false;
             Log.Debug("Testing StackTrace:\n" + new StackTrace(true).ToString(), copyToGameLog: false);
             KianCommons.UI.TextureUtil.EmbededResources = false;
             HelpersExtensions.VERBOSE = false;
@@ -36,6 +37,7 @@ namespace NodeController.LifeCycle {
         const bool fastTestHarmony = false;
 
         public static void Disable() {
+            Log.Buffered = false;
             LoadingManager.instance.m_simulationDataReady -= SimulationDataReady;
             Unload(); // in case of hot unload
 

@@ -70,7 +70,6 @@ namespace NodeController.GUI {
             TMPE_Overlay.tooltip = "Holding control hides all TMPE overlay.\n" +
                 "but if this is checked, you don't have to (excluding Corssings/Uturn)";
             FixTooltipAlignment(TMPE_Overlay);
-
         }
 
         static UICheckBox universalFixes_;
@@ -82,7 +81,7 @@ namespace NodeController.GUI {
             object val = GameConfig?.UnviversalSlopeFixes; val = val ?? "null";
             Log.Debug($"MakeGameSettings: UnviversalSlopeFixes =" + val);
             universalFixes_ = group.AddCheckbox(
-                "apply universal slope fixes(flat jucntions, curvature of extreme slopes)",
+                "apply universal slope fixes(flat junctions and curvature of extreme slopes)",
                 defaultValue: GameConfig?.UnviversalSlopeFixes ?? GameConfigT.NewGameDefault.UnviversalSlopeFixes,
                 ApplyUniversalSlopeFixes) as UICheckBox;
             universalFixes_.tooltip = "changing this may influence existing custom nodes.";

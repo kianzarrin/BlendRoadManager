@@ -7,7 +7,7 @@
     <Product>NodeController</Product>
     <Copyright>Copyright ©  2020</Copyright>
     <Deterministic>false</Deterministic>
-    <AssemblyVersion>2.1.13.*</AssemblyVersion>
+    <AssemblyVersion>2.1.14.*</AssemblyVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -46,13 +46,14 @@
   <ItemGroup>
     <Compile Remove="DecompiledSources\NetAI.cs" />
     <Compile Remove="DecompiledSources\NetLane2.cs" />
-    <Compile Remove="DecompiledSources\NetNode.cs" />
     <Compile Remove="DecompiledSources\NetSegment2.cs" />
     <Compile Remove="DecompiledSources\VehicleAI.cs" />
     <Compile Remove="GUI\Panel\Corner\MassFlattenNodeCheckbox.cs" />
     <Compile Remove="KianCommons\KianCommons\Properties\AssemblyInfo.cs" />
+    <Compile Remove="KianCommons\KianCommons\Util\AssemblyTypeExtensions.cs" />
     <Compile Remove="KianCommons\KianCommons\Util\CSURUtil.cs" />
-    <Compile Remove="Patches\NetSegmentPatches\RenderInstance.cs" />
+    <Compile Remove="Patches\HarmonyExtension.cs" />
+    <Compile Remove="Patches\NetSegmentPatches\RenderInstance_nameMatrix.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="KianCommons\.git" />
@@ -116,7 +117,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="DecompiledSources\NetAI.cs" />
-    <None Include="DecompiledSources\NetNode.cs" />
     <None Include="DecompiledSources\NetSegment2.cs" />
     <None Include="DecompiledSources\VehicleAI.cs" />
   </ItemGroup>
