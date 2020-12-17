@@ -92,52 +92,90 @@ namespace NodeController.Patches {
                 bool startNode = segmentID.ToSegment().IsStartNode(nodeID);
                 bool flip = invert != startNode;
                 if (flip) {
-                    Log.DebugWait($"node:{nodeID} segment:{segmentID} was flipped", seconds: 2, copyToGameLog: false);
-                    //var m_dataMatrix0 = Rotate() * data.m_dataMatrix1;
-                    //var m_dataMatrix1 = Rotate() * data.m_dataMatrix0;
-                    //var extra_dataMatrix2 = Rotate() * data.m_extraData.m_dataMatrix3;
-                    //var extra_dataMatrix3 = Rotate() * data.m_extraData.m_dataMatrix2;
+                    //Log.DebugWait($"node:{nodeID} segment:{segmentID} was flipped", seconds: 2, copyToGameLog: false);
+                    //var m_dataMatrix0 = Rotate() * data.m_dataMatrix0;
+                    //var m_dataMatrix1 = Rotate() * data.m_dataMatrix1;
+                    //var extra_dataMatrix2 = Rotate() * data.m_extraData.m_dataMatrix2;
+                    //var extra_dataMatrix3 = Rotate() * data.m_extraData.m_dataMatrix3;
 
-                    //var m_dataMatrix0 = Reflection(0) * data.m_dataMatrix1;
-                    //var m_dataMatrix1 = Reflection(0) * data.m_dataMatrix0;
-                    //var extra_dataMatrix2 = Reflection(0) * data.m_extraData.m_dataMatrix3;
-                    //var extra_dataMatrix3 = Reflection(0) * data.m_extraData.m_dataMatrix2;
+                    //var m_dataMatrix0 = Reflection(0) * data.m_dataMatrix0;
+                    //var m_dataMatrix1 = Reflection(0) * data.m_dataMatrix1;
+                    //var extra_dataMatrix2 = Reflection(0) * data.m_extraData.m_dataMatrix2;
+                    //var extra_dataMatrix3 = Reflection(0) * data.m_extraData.m_dataMatrix3;
 
-                    //var m_dataMatrix0 = FlipRows(data.m_dataMatrix1);
-                    //var m_dataMatrix1 = FlipRows(data.m_dataMatrix0);
-                    //var extra_dataMatrix2 = FlipRows(data.m_extraData.m_dataMatrix3);
-                    //var extra_dataMatrix3 = FlipRows(data.m_extraData.m_dataMatrix2);
+                    //var m_dataMatrix0 = FlipRows(data.m_dataMatrix0);
+                    //var m_dataMatrix1 = FlipRows(data.m_dataMatrix1);
+                    //var extra_dataMatrix2 = FlipRows(data.m_extraData.m_dataMatrix2);
+                    //var extra_dataMatrix3 = FlipRows(data.m_extraData.m_dataMatrix3);
 
 
-                    var m_dataMatrix0 = FlipCols(data.m_dataMatrix1);
-                    var m_dataMatrix1 = FlipCols(data.m_dataMatrix0);
-                    var extra_dataMatrix2 = FlipCols(data.m_extraData.m_dataMatrix3);
-                    var extra_dataMatrix3 = FlipCols(data.m_extraData.m_dataMatrix2);
+                    //var m_dataMatrix0 = FlipCols(data.m_dataMatrix0);
+                    //var m_dataMatrix1 = FlipCols(data.m_dataMatrix1);
+                    //var extra_dataMatrix2 = FlipCols(data.m_extraData.m_dataMatrix2);
+                    //var extra_dataMatrix3 = FlipCols(data.m_extraData.m_dataMatrix3);
 
-                    //var m_dataMatrix0 = FlipFlop(data.m_dataMatrix1);
-                    //var m_dataMatrix1 = FlipFlop(data.m_dataMatrix0);
-                    //var extra_dataMatrix2 = FlipFlop(data.m_extraData.m_dataMatrix3);
-                    //var extra_dataMatrix3 = FlipFlop(data.m_extraData.m_dataMatrix2);
 
-                    //var m_dataMatrix0 =  data.m_dataMatrix1 * Reflection(0);
-                    //var m_dataMatrix1 = data.m_dataMatrix0 * Reflection(0);
-                    //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix3 * Reflection(0);
-                    //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix2 * Reflection(0);
 
-                    //var m_dataMatrix0 =  data.m_dataMatrix1 * Rotate();
-                    //var m_dataMatrix1 = data.m_dataMatrix0 * Rotate();
-                    //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix3 * Rotate();
-                    //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix2 * Rotate();
+                    //var m_dataMatrix0 = FlipFlop(data.m_dataMatrix0);
+                    //var m_dataMatrix1 = FlipFlop(data.m_dataMatrix1);
+                    //var extra_dataMatrix2 = FlipFlop(data.m_extraData.m_dataMatrix2);
+                    //var extra_dataMatrix3 = FlipFlop(data.m_extraData.m_dataMatrix3);
 
-                    data.m_dataMatrix0 = m_dataMatrix0;
-                    data.m_dataMatrix1 = m_dataMatrix1;
-                    data.m_extraData.m_dataMatrix2 = extra_dataMatrix2;
-                    data.m_extraData.m_dataMatrix3 = extra_dataMatrix3;
+                    //var m_dataMatrix0 =  data.m_dataMatrix0 * Reflection(0);
+                    //var m_dataMatrix1 = data.m_dataMatrix1 * Reflection(0);
+                    //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix2 * Reflection(0);
+                    //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix3 * Reflection(0);
 
+                    //var m_dataMatrix0 =  data.m_dataMatrix0 * Rotate();
+                    //var m_dataMatrix1 = data.m_dataMatrix1 * Rotate();
+                    //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix2 * Rotate();
+                    //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix3 * Rotate();
+
+                    //noOp:
+                    //var m_dataMatrix0 = data.m_dataMatrix0;
+                    //var m_dataMatrix1 = data.m_dataMatrix1;
+                    //var extra_dataMatrix2 = data.m_extraData.m_dataMatrix2;
+                    //var extra_dataMatrix3 = data.m_extraData.m_dataMatrix3;
+
+                    ///////////////////////////////////////
+                    //normal:
+                    //data.m_dataMatrix0 = m_dataMatrix0;
+                    //data.m_dataMatrix1 = m_dataMatrix1;
+                    //data.m_extraData.m_dataMatrix2 = extra_dataMatrix2;
+                    //data.m_extraData.m_dataMatrix3 = extra_dataMatrix3;
+
+                    //swap:
                     //data.m_dataMatrix0 = m_dataMatrix1;
                     //data.m_dataMatrix1 = m_dataMatrix0;
                     //data.m_extraData.m_dataMatrix2 = extra_dataMatrix3;
                     //data.m_extraData.m_dataMatrix3 = extra_dataMatrix2;
+
+                    ////////////////////////////////////////////////////////////
+
+                    //data.m_dataVector0.x = -data.m_dataVector0.x;
+                    //data.m_dataVector0.z = -data.m_dataVector0.z;
+                    //data.m_dataVector0.y = -data.m_dataVector0.y;
+                    //data.m_dataVector0.w = -data.m_dataVector0.w;
+
+                    //data.m_dataVector1.x = -data.m_dataVector1.x;
+                    //data.m_dataVector1.z = -data.m_dataVector1.z;
+                    //data.m_dataVector1.y = -data.m_dataVector1.y;
+                    //data.m_dataVector1.w = -data.m_dataVector1.w;
+
+                    //data.m_dataVector2.x = -data.m_dataVector2.x;
+                    //data.m_dataVector2.z = -data.m_dataVector2.z;
+                    //data.m_dataVector2.y = -data.m_dataVector2.y;
+                    //data.m_dataVector2.w = -data.m_dataVector2.w;
+
+                    //data.m_dataVector3.x = -data.m_dataVector3.x;
+                    //data.m_dataVector3.z = -data.m_dataVector3.z;
+                    //data.m_dataVector3.y = -data.m_dataVector3.y;
+                    //data.m_dataVector3.w = -data.m_dataVector3.w;
+
+                    //data.m_extraData.m_dataVector4.x = -data.m_extraData.m_dataVector4.x;
+                    //data.m_extraData.m_dataVector4.z = -data.m_extraData.m_dataVector4.z;
+                    //data.m_extraData.m_dataVector4.y = -data.m_extraData.m_dataVector4.y;
+                    //data.m_extraData.m_dataVector4.w = -data.m_extraData.m_dataVector4.w;
                 }
             }
 
@@ -149,39 +187,6 @@ namespace NodeController.Patches {
                 // puts crossings in the center.
                 data.m_dataVector1.w = 0.01f;
             }
-
-
-
-#if false
-            if(blendData.NodeType == NodeTypeT.Stretch) {
-                // should data vectors be inverted?
-                ushort segmentID = __instance.GetSegment(data.m_dataInt0 & 7);
-                var invert = segmentID.ToSegment().m_flags.IsFlagSet(NetSegment.Flags.Invert);
-                var startNode = NetUtil.IsStartNode(segmentId:segmentID, nodeId: nodeID);
-                bool flip = startNode == !invert; // tested works.
-                if (flip) {// flip across x axis
-                    data.m_dataVector0.x = -data.m_dataVector0.x;
-                    //data.m_dataVector0.z = -data.m_dataVector0.z;
-                    data.m_dataVector0.y = -data.m_dataVector0.y;
-                    //data.m_dataVector0.w = -data.m_dataVector0.w;
-
-                    //data.m_dataVector2.x = -data.m_dataVector2.x;
-                    //data.m_dataVector2.z = -data.m_dataVector2.z;
-                    data.m_dataVector2.y = -data.m_dataVector2.y;
-                    //data.m_dataVector2.w = -data.m_dataVector2.w;
-                     
-                    //data.m_dataVector1.x = -data.m_dataVector1.x;
-                    //data.m_dataVector1.z = -data.m_dataVector1.z;
-                    //data.m_dataVector1.y = -data.m_dataVector1.y;
-                    //data.m_dataVector1.w = -data.m_dataVector1.w;
-
-                    //data.m_dataVector3.z = -data.m_dataVector3.z;
-                    //data.m_dataVector3.y = -data.m_dataVector3.y;
-                    //data.m_dataVector3.x = -data.m_dataVector3.x;
-                    //data.m_dataVector3.w = -data.m_dataVector3.w;
-                }
-            }
-#endif
         }
 
         static MethodInfo mCalculateCorner = typeof(NetSegment)
