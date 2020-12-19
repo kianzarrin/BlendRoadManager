@@ -128,7 +128,7 @@ namespace NodeController.Tool {
 
         protected override void OnEnable() {
             try {
-                Log.Info("NodeControllerTool.OnEnable",true);
+                Log.Info("NodeControllerTool.OnEnable", true);
                 base.OnEnable();
                 Button?.Activate();
                 SelectedNodeID = 0;
@@ -137,8 +137,7 @@ namespace NodeController.Tool {
                 SimulationManager.instance.m_ThreadingWrapper.QueueSimulationThread(delegate () {
                     NodeManager.ValidateAndHeal(false);
                 });
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Log.Exception(e);
             }
 
@@ -206,8 +205,7 @@ namespace NodeController.Tool {
             }
             try {
                 this.m_errors = errors;
-            }
-            finally {
+            } finally {
                 Monitor.Exit(this.m_cacheLock);
             }
         }
@@ -351,8 +349,7 @@ namespace NodeController.Tool {
             try {
                 m_cachedControlPoint = m_controlPoint;
                 m_cachedErrors = m_errors;
-            }
-            finally {
+            } finally {
                 Monitor.Exit(this.m_cacheLock);
             }
 
@@ -481,6 +478,17 @@ namespace NodeController.Tool {
                 Color.yellow,
                 alpha: true);
             }
+#if DEBUG
+            // TEST CODE
+            if (HoveredNodeId.ToNode().m_flags.IsFlagSet(NetNode.Flags.Junction)) {
+                GetSegments(HoveredSegmentId, HoveredNodeId, out var segmentIdA, out var segmentIdB);
+                if (segmentIdA != 0) 
+                    RenderSegmnetOverlay(cameraInfo, segmentIdA, Color.green);
+                if (segmentIdB != 0) 
+                    RenderSegmnetOverlay(cameraInfo, segmentIdB, Color.blue);
+            }
+#endif
+
         }
 
         protected override void OnToolGUI(Event e) {
@@ -549,7 +557,7 @@ namespace NodeController.Tool {
         protected override void OnPrimaryMouseClicked() {
             if (!IsHoverValid || handleHovered_ || CornerFocusMode)
                 return;
-            Log.Info($"OnPrimaryMouseClicked: segment {HoveredSegmentId} node {HoveredNodeId}",true);
+            Log.Info($"OnPrimaryMouseClicked: segment {HoveredSegmentId} node {HoveredNodeId}", true);
             if (AltIsPressed) {
                 if (CanSelectSegmentEnd(nodeID: HoveredNodeId, segmentID: HoveredSegmentId)) {
                     SelectedSegmentID = HoveredSegmentId;
@@ -655,5 +663,62 @@ namespace NodeController.Tool {
             //Log.Debug("MakeControlPoint: on segment.");
             return true;
         }
+
+        public static void GetSegments(ushort segmentID, ushort nodeID, out ushort segmentID_A, out ushort segmentID_B) {
+            segmentID_A = segmentID_B = 0;
+            ref NetSegment segment = ref segmentID.ToSegment();
+            NetInfo info = segment.Info;
+            ItemClass connectionClass = info.GetConnectionClass();
+            bool bStartNode = nodeID == segment.m_startNode;
+            Vector3 dir = !bStartNode ? segment.m_endDirection : segment.m_startDirection;
+            float dot_A = -4f;
+            float dot_B = -4f;
+            for (int i = 0; i < 8; i++) {
+                ushort segmentID2 = nodeID.ToNode().GetSegment(i);
+                if (segmentID2 == 0 || segmentID2 == segmentID)
+                    continue;
+                NetInfo info2 = segmentID2.ToSegment().Info;
+                ItemClass connectionClass2 = info2.GetConnectionClass();
+                if (connectionClass.m_service != connectionClass2.m_service)
+                    continue;
+
+                NetSegment segment2 = segmentID2.ToSegment();
+                bool bStartNode2 = nodeID != segment2.m_startNode;
+                Vector3 dir2 = !bStartNode2 ? segment2.m_endDirection : segment2.m_startDirection;
+                float dot = dir.x * dir2.x + dir.z * dir2.z;
+                float determinent = dir2.z * dir.x - dir2.x * dir.z;
+                bool bRight = determinent > 0;
+                bool bWide = dot < 0;
+                // 180 -> det=0 dot=-1
+                if (!bRight) {
+                    if (dot > dot_A) // most accute
+                    {
+                        dot_A = dot;
+                        segmentID_A = segmentID2;
+                    }
+                    dot = -2f - dot;
+                    if (dot > dot_B) // widest
+                    {
+                        dot_B = dot;
+                        segmentID_B = segmentID2;
+                    }
+                } else {
+                    if (dot > dot_B) // most accute
+                    {
+                        dot_B = dot;
+                        segmentID_B = segmentID2;
+                    }
+                    dot = -2f - dot;
+                    if (dot > dot_A) // widest
+                    {
+                        dot_A = dot;
+                        segmentID_A = segmentID2;
+                    }
+
+                }
+            }
+        }
+
+
     } //end class
 }
