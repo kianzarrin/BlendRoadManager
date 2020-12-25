@@ -1,19 +1,17 @@
-- modify prop x offset when stretching segment.
-   - done for close
-   - not working for lod
-
-- fix end node selector.
-
-- options for default universal behaviours:
-    - auto embankment for curved segments.
+- Tool modes: Toggle Crossing | Edit Node | Insert Node | Default
+- options:
+    - do not move nearby nodes when inserting node.
+    - toggle TMPE signs.
+- TMPE signs not always showing when they should.
+    - they should definately show when someone hides junction markings.
 
 - open and close corner table.
 - new Corner table organisation
 
-- corner offset to increase chances of train track connection.
+
 - fix the orientation of asym road
 - support for asymetric textures
-- lod support (not now)
+- lod support
 
 - Toggle Crossing tool mod activatble from UUI.
 

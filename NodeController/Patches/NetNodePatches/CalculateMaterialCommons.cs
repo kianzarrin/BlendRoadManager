@@ -125,7 +125,7 @@ namespace NodeController.Patches {
             index = SearchInstruction(codes, new CodeInstruction(OpCodes.Call, mGetSegment), index, counter: counter, dir: -1);
 
             var code = codes[index + 1];
-            Assertion.Assert(IsStLoc(code), $"IsStLoc(code) | code={code}");
+            Assertion.Assert(code.IsStloc(), $"IsStLoc(code) | code={code}");
             return code.BuildLdLocFromStLoc();
         }
     }

@@ -58,15 +58,19 @@ namespace NodeController.Tool {
                 ToolsModifierControl.SetTool<DefaultTool>();
         }
 
-        static bool leftMouseWasDown_;
+        // avoid responding to mouse event if mouse was down at UI and up on road.
+        static bool primaryMouseWasDown_, secondaryMouseWasDown_;
+
         protected override void OnToolGUI(Event e) {
             base.OnToolGUI(e);
-            if (leftMouseWasDown_ && e.type == EventType.MouseUp && m_mouseRayValid) {
-                if (e.button == 0) OnPrimaryMouseClicked();
-                else if (e.button == 1) OnSecondaryMouseClicked();
+            if ( e.type == EventType.MouseUp && m_mouseRayValid) {
+                if (primaryMouseWasDown_ && e.button == 0) OnPrimaryMouseClicked();
+                else if (secondaryMouseWasDown_ && e.button == 1) OnSecondaryMouseClicked();
             }
-            if(e.type == EventType.MouseDown || e.type == EventType.MouseUp)
-                leftMouseWasDown_ = e.type == EventType.MouseDown && e.button == 0 && m_mouseRayValid;
+            if (e.type == EventType.MouseDown || e.type == EventType.MouseUp) {
+                primaryMouseWasDown_ = e.type == EventType.MouseDown && e.button == 0 && m_mouseRayValid;
+                secondaryMouseWasDown_ = e.type == EventType.MouseDown && e.button == 1 && m_mouseRayValid;
+            }
 
             if (e.type == EventType.keyDown && e.keyCode == KeyCode.Escape) {
                 e.Use();

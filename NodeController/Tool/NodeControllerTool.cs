@@ -9,6 +9,13 @@ namespace NodeController.Tool {
     using static KianCommons.HelpersExtensions;
     using static KianCommons.UI.RenderUtil;
 
+    public enum NCToolMode {
+        Default,
+        EditNode,
+        EditSegmentEnd,
+        ToggleCrossing
+    }
+
     public sealed class NodeControllerTool : KianToolBase {
         public static readonly SavedInputKey ActivationShortcut = new SavedInputKey(
             "ActivationShortcut",
@@ -22,12 +29,21 @@ namespace NodeController.Tool {
         public static readonly SavedBool Hide_TMPE_Overlay = new SavedBool(
             "Hide_TMPE_Overlay", Settings.FileName, def: false, true);
 
+        static readonly SavedInt savedToolMode_= new SavedInt(
+            "ToolMode", Settings.FileName, def: (int)NCToolMode.Default, true);
+
+        public static NCToolMode ToolMode {
+            get => (NCToolMode)savedToolMode_.value;
+            set => savedToolMode_.value = (int)value;
+        }
+
         public static bool LockMode => ControlIsPressed && !AltIsPressed;
         public static bool InvertLockMode => ControlIsPressed && AltIsPressed;
 
         NodeControllerButton Button => NodeControllerButton.Instace;
         UINodeControllerPanel NCPanel;
         UISegmentEndControllerPanel SECPanel;
+        ToolModePanel TMPanel;
 
         NetTool.ControlPoint m_controlPoint;
         NetTool.ControlPoint m_cachedControlPoint;
@@ -50,6 +66,7 @@ namespace NodeController.Tool {
             NodeControllerButton.CreateButton();
             NCPanel = UINodeControllerPanel.Create();
             SECPanel = UISegmentEndControllerPanel.Create();
+            TMPanel = ToolModePanel.Create();
 
             Log.Info($"NodeControllerTool.Start() was called " +
                 $"this.version={this.VersionOf()} " +
@@ -111,19 +128,18 @@ namespace NodeController.Tool {
             Log.Info("NodeControllerTool.Remove()");
             var tool = Instance;
             if (tool != null)
-                Destroy(tool);
+                DestroyImmediate(tool);
         }
 
         protected override void OnDestroy() {
             Log.Info("NodeControllerTool.OnDestroy() " +
                 $"this.version={this.VersionOf()} NodeControllerTool.version={typeof(NodeControllerTool).VersionOf()}");
-
             Button?.Hide();
-            Destroy(Button);
-            Destroy(NCPanel);
-            Destroy(SECPanel);
+            DestroyImmediate(Button);
+            DestroyImmediate(NCPanel);
+            DestroyImmediate(SECPanel);
+            DestroyImmediate(TMPanel);
             base.OnDestroy();
-
         }
 
         protected override void OnEnable() {
@@ -137,11 +153,11 @@ namespace NodeController.Tool {
                 SimulationManager.instance.m_ThreadingWrapper.QueueSimulationThread(delegate () {
                     NodeManager.ValidateAndHeal(false);
                 });
+                TMPanel.Open();
             }
             catch (Exception e) {
                 Log.Exception(e);
             }
-
         }
 
         protected override void OnDisable() {
@@ -154,6 +170,7 @@ namespace NodeController.Tool {
             SelectedSegmentID = 0;
             NCPanel?.Close();
             SECPanel?.Close();
+            TMPanel?.Close();
         }
 
         void DragCorner() {
@@ -181,7 +198,6 @@ namespace NodeController.Tool {
                 DragCorner();
                 return;
             }
-
 
             ServiceTypeGuide optionsNotUsed = Singleton<NetManager>.instance.m_optionsNotUsed;
             if (optionsNotUsed != null && !optionsNotUsed.m_disabled) {
@@ -585,11 +601,13 @@ namespace NodeController.Tool {
                 if (!NetUtil.IsCSUR(m_prefab)) {
                     SimulationManager.instance.AddAction(delegate () {
                         NodeData nodeData = NodeManager.Instance.InsertNode(c);
-                        if (nodeData != null) {
-                            SelectedNodeID = nodeData.NodeID;
-                            SelectedSegmentID = 0;
-                            NCPanel.Display(SelectedNodeID);
-                        }
+                        SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(delegate () {
+                            if (nodeData != null) {
+                                SelectedNodeID = nodeData.NodeID;
+                                SelectedSegmentID = 0;
+                                NCPanel.Display(SelectedNodeID);
+                            }
+                        });
                     });
                 }
             } else {
@@ -603,8 +621,7 @@ namespace NodeController.Tool {
                 DisableTool();
             } else {
                 SelectedSegmentID = SelectedNodeID = 0;
-                NCPanel.Close();
-                SECPanel.Close();
+                TMPanel.Open();
             }
         }
 
@@ -634,12 +651,12 @@ namespace NodeController.Tool {
                 segmentID0.ToSegment().Info != segmentID1.ToSegment().Info ||
                 !HoveredNodeId.ToNode().m_flags.IsFlagSet(NetNode.Flags.Moveable);
 
-            snapNode |= SnapToMiddleNode;
-
+            bool edit = ToolMode == NCToolMode.EditNode;
+            snapNode |= SnapToMiddleNode | edit;
             if (snapNode) {
                 Vector3 diff = raycastOutput.m_hitPos - HoveredNodeId.ToNode().m_position;
                 const float distance = 2 * NetUtil.MPU;
-                if (diff.sqrMagnitude < distance * distance) {
+                if (edit || diff.sqrMagnitude < distance * distance) {
                     m_controlPoint = new NetTool.ControlPoint { m_node = HoveredNodeId };
                     //Log.Debug("MakeControlPoint: On node");
                     return true;

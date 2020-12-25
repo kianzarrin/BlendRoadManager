@@ -20,6 +20,14 @@ namespace NodeController.GUI {
             var panel = uiView.FindUIComponent<UISegmentEndControllerPanel>("UISegmentEndControllerPanel");
             Destroy(panel);
         }
+        public override void Awake() {
+            base.Awake();
+            Instance = this;
+        }
+        public override void OnDestroy() {
+            Instance = null;
+            base.OnDestroy();
+        }
         #endregion Instanciation
 
         public ushort SegmentID { get; private set; }
@@ -36,15 +44,6 @@ namespace NodeController.GUI {
 
         public override NetworkTypeT NetworkType => NetworkTypeT.Node;
         public override INetworkData GetData() => SegmentEndData;
-
-        public override void Awake() {
-            base.Awake();
-            Instance = this;
-        }
-        public override void OnDestroy() {
-            Instance = null;
-            base.OnDestroy();
-        }
 
         public override void Start() {
             base.Start();

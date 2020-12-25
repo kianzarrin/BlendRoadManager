@@ -37,7 +37,5 @@ namespace NodeController.GUI {
         string HintHotkeys { get; }
 
         string HintDescription { get; }
-
-
     }
 }

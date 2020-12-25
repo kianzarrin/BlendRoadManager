@@ -19,6 +19,15 @@ namespace NodeController.GUI {
             var panel = (UINodeControllerPanel)uiView.FindUIComponent<UINodeControllerPanel>("UINodeControllerPanel");
             Destroy(panel);
         }
+        public override void Awake() {
+            base.Awake();
+            Instance = this;
+        }
+
+        public override void OnDestroy() {
+            Instance = null;
+            base.OnDestroy();
+        }
         #endregion Instanciation
 
         public override NetworkTypeT NetworkType => NetworkTypeT.Node;
@@ -34,16 +43,6 @@ namespace NodeController.GUI {
         }
 
         UIAutoSizePanel offsetPanel_, embankmentPanel_, stretchPanel_, slopePanel_;
-
-        public override void Awake() {
-            base.Awake();
-            Instance = this;
-        }
-
-        public override void OnDestroy() {
-            Instance = null;
-            base.OnDestroy();
-        }
 
         public override void Start() {
             base.Start();
