@@ -7,6 +7,7 @@ namespace NodeController.GUI {
     using KianCommons;
     using KianCommons.UI;
     using System;
+    using ColossalFramework.Threading;
 
     public abstract class UIPanelBase : UIAutoSizePanel, IDataControllerUI {
         public static UIPanelBase ActivePanel;
@@ -114,7 +115,7 @@ namespace NodeController.GUI {
 
         public virtual void Refresh() {
             if (!IsStarted) {
-                SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(Refresh);
+                ThreadHelper.dispatcher.Dispatch(Refresh);
             }
 
             Unfocus();
@@ -164,7 +165,7 @@ namespace NodeController.GUI {
         // base.Open and base.Closed should be called at the end of Display/Close
         public virtual void Open() {
             if (!IsStarted) {
-                SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(Open);
+                ThreadHelper.dispatcher.Dispatch(Open);
             }
                 
             if(ActivePanel!=this)
