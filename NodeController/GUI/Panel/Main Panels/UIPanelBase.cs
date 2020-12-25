@@ -113,9 +113,10 @@ namespace NodeController.GUI {
         public bool IsStarted => Hintbox != null;
 
         public virtual void Refresh() {
+            if (!IsStarted) {
+                SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(Refresh);
+            }
 
-            if (!IsStarted)
-                return;
             Unfocus();
             autoLayout = true;
             foreach (IDataControllerUI control in Controls ?? Enumerable.Empty<IDataControllerUI>())
@@ -162,8 +163,10 @@ namespace NodeController.GUI {
 
         // base.Open and base.Closed should be called at the end of Display/Close
         public virtual void Open() {
-            if (!IsStarted)
-                return;
+            if (!IsStarted) {
+                SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(Open);
+            }
+                
             if(ActivePanel!=this)
                 ActivePanel?.Close();
             //gameObject.SetActive(true);

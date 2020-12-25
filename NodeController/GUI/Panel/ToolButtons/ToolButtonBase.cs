@@ -49,16 +49,21 @@ namespace NodeController.GUI.Panel.ToolButtons {
         }
 
         public override void Start() {
-            Log.Debug("ToolButtonBase.Start() is called for " + Name, false);
-            base.Start();
-            SetupSprites();
+            try {
+                Log.Debug("ToolButtonBase.Start() is called for " + Name, true);
+                base.Start();
+                SetupSprites();
+                Show();
+            } catch (Exception ex){
+                Log.Exception(ex);
+            }
         }
 
         public UITextureAtlas SetupSprites() {
             string[] spriteNames = new string[] { IconNormal, IconHovered, IconPressed, IconDisabled };
             var atlas = TextureUtil.GetAtlas(AtlasName);
             if (atlas == UIView.GetAView().defaultAtlas) {
-                atlas = TextureUtil.CreateTextureAtlas(SpritesFileName, AtlasName, SIZE, SIZE, spriteNames);
+                atlas = TextureUtil.CreateTextureAtlas(SpritesFileName, AtlasName, spriteNames);
             }
             Log.Debug("atlas name is: " + atlas.name, false);
             this.atlas = atlas;

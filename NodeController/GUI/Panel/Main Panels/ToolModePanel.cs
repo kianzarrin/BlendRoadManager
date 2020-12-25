@@ -1,8 +1,10 @@
 namespace NodeController.GUI {
     using ColossalFramework.UI;
     using KianCommons;
+    using KianCommons.UI;
     using System;
     using NodeController.GUI.Panel.ToolButtons;
+
 
     public class ToolModePanel : UIPanelBase {
         #region Instanciation
@@ -31,7 +33,7 @@ namespace NodeController.GUI {
 
         public override NetworkTypeT NetworkType => throw new NotImplementedException();
         public override INetworkData GetData() => throw new NotImplementedException();
-        public UIPanel Container;
+        public UIAutoSizePanel Container;
 
         public override void Start() {
             base.Start();
@@ -39,9 +41,9 @@ namespace NodeController.GUI {
 
             name = "ToolModePanel";
             Caption = "Node Controller Tool";
-            this.autoLayoutDirection = LayoutDirection.Horizontal;
 
             Container = AddPanel();
+            Container.AutoSize2 = true;
             Container.autoLayoutDirection = LayoutDirection.Horizontal;
 
             // add all buttons here:
