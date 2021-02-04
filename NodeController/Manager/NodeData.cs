@@ -382,6 +382,12 @@ namespace NodeController {
             Update();
         }
 
+        public static bool CanHaveZebraCrossing(NetInfo info) {
+            return info.CountPedestrianLanes() >= 2
+                && info.m_netAI is RoadBaseAI
+                && !info.IsCSUR();
+        }
+
         public NodeData(ushort nodeID, NodeTypeT nodeType) : this(nodeID) {
             NodeType = nodeType;
             FirstTimeTrafficLight = nodeType == NodeTypeT.Crossing;
@@ -488,7 +494,6 @@ namespace NodeController {
             }
         }
 
-
         static ushort SelectedNodeID => NodeControllerTool.Instance.SelectedNodeID;
         public bool IsSelected() => NodeID == SelectedNodeID;
 
@@ -561,6 +566,25 @@ namespace NodeController {
                 default:
                     throw new Exception("Unreachable code");
             }
+        }
+
+
+        public bool ToggleCrossing() {
+            if (!NodeExtensions.CanToggleCrossing(NodeID))
+                return false;
+            if (!Node.CanBend()) {
+                foreach(ushort segmentID in Node.IterateSegments()) {
+                    jrMan.Togg
+
+
+
+                }
+            }
+
+
+
+
+
         }
 
         public bool IsCSUR => NetUtil.IsCSUR(Info);
@@ -781,5 +805,44 @@ namespace NodeController {
             }
         }
         #endregion
+    }
+
+    public static class NodeExtensions {
+        public static bool IsStraight(this ref NetNode node) {
+            if (node.m_flags.IsFlagSet(NetNode.Flags.LevelCrossing))
+                return false;
+            if (node.CountSegments() != 2)
+                return false;
+            ushort segmentID1 = node.GetFirstSegment();
+            ushort segmentID2 = node.GetAnotherSegment(segmentID1);
+            ushort nodeID = segmentID1.ToSegment().GetSharedNode(segmentID2);
+            var dir0 = segmentID1.ToSegment().GetDirection(nodeID);
+            var dir1 = segmentID1.ToSegment().GetDirection(nodeID);
+
+            float dot = DotXZ(dir0, dir1);
+            return dot < -0.999f; // 180 degrees
+        }
+
+        public static bool CanBend(this ref NetNode node) {
+            if (node.m_flags.IsFlagSet(NetNode.Flags.LevelCrossing))
+                return false;
+            if (node.CountSegments() != 2)
+                return false;
+            ushort segmentID1 = node.GetFirstSegment();
+            ushort segmentID2 = node.GetAnotherSegment(segmentID1);
+            var isRoad1 = segmentID1.ToSegment().Info.m_netAI is RoadBaseAI;
+            var isRoad2 = segmentID2.ToSegment().Info.m_netAI is RoadBaseAI;
+            return isRoad1 && isRoad2;
+        }
+
+        public static bool CanToggleCrossing(ushort nodeID) {
+            return nodeID.ToNode().IterateSegments()
+                .Any(_segmentID => CanToggleCrossing(nodeID: nodeID, segmentID: _segmentID));
+        }
+
+        public static bool CanToggleCrossing(ushort nodeID, ushort segmentID) {
+            return !nodeID.ToNode().m_flags.IsFlagSet(NetNode.Flags.End)
+                && NodeData.CanHaveZebraCrossing(segmentID.ToSegment().Info);
+        }
     }
 }

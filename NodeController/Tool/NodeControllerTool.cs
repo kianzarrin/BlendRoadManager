@@ -8,6 +8,8 @@ namespace NodeController.Tool {
     using UnityEngine;
     using static KianCommons.HelpersExtensions;
     using static KianCommons.UI.RenderUtil;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public enum NCToolMode {
         Default,
@@ -29,7 +31,7 @@ namespace NodeController.Tool {
         public static readonly SavedBool Hide_TMPE_Overlay = new SavedBool(
             "Hide_TMPE_Overlay", Settings.FileName, def: false, true);
 
-        static readonly SavedInt savedToolMode_= new SavedInt(
+        static readonly SavedInt savedToolMode_ = new SavedInt(
             "ToolMode", Settings.FileName, def: (int)NCToolMode.Default, true);
 
         public static NCToolMode ToolMode {
@@ -37,6 +39,19 @@ namespace NodeController.Tool {
             set => savedToolMode_.value = (int)value;
         }
 
+        public static NCToolMode FinalToolMode {
+            get {
+                if (AltIsPressed) {
+                    if (ToolMode == NCToolMode.Default || ToolMode == NCToolMode.EditNode)
+                        return NCToolMode.EditSegmentEnd;
+                    else if (ToolMode == NCToolMode.EditSegmentEnd)
+                        return NCToolMode.EditNode;
+                }
+                return ToolMode;
+            }
+        }
+
+        public static bool EditMode => FinalToolMode == NCToolMode.EditNode || FinalToolMode == NCToolMode.EditSegmentEnd;
         public static bool LockMode => ControlIsPressed && !AltIsPressed;
         public static bool InvertLockMode => ControlIsPressed && AltIsPressed;
 
@@ -53,8 +68,34 @@ namespace NodeController.Tool {
 
         private object m_cacheLock = new object();
 
-        private CursorInfo CursorInsert, CursorInsertCrossing,
-            CursorEdit, CursorSearching, CursorError, CursorMoveCorner;
+
+        internal class CursorGroup {
+            internal CursorInfo Searching, Fail, Success;
+            public CursorGroup() { }
+            public CursorGroup(string search, string sucess, string fail) {
+                CreateCursor(search);
+                CreateCursor(sucess);
+                CreateCursor(fail);
+            }
+            public CursorGroup(string name) {
+                string prefix = "cursor_";
+                string postfix = ".png";
+                Searching = CreateCursor(prefix + name + "_grey" + postfix);
+                Success = CreateCursor(prefix + name + "_green" + postfix);
+                Fail = CreateCursor(prefix + name + "_red" + postfix);
+            }
+        }
+
+        internal static CursorInfo CreateCursor(string file) {
+            if (string.IsNullOrEmpty(file)) return null;
+            var ret = ScriptableObject.CreateInstance<CursorInfo>();
+            ret.m_texture = TextureUtil.GetTextureFromFile(file);
+            ret.m_hotspot = new Vector2(5f, 0f);
+            return ret;
+        }
+
+        private CursorGroup CursorEditNode, CursorEditSegmentEnd, CursorInsertCrossing, CursorDefault;
+        private CursorInfo CursorMoveCorner;
 
         ref SegmentEndData SelectedSegmentEndData => ref SegmentEndManager.Instance
             .GetAt(segmentID: SelectedSegmentID, nodeID: SelectedNodeID);
@@ -84,29 +125,13 @@ namespace NodeController.Tool {
             // F)fail modify (end node) red geerbox.
             // G)inside panel: normal
 
-            CursorEdit = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorEdit.m_texture = TextureUtil.GetTextureFromFile("cursor_edit.png"); // green pen
-            CursorEdit.m_hotspot = new Vector2(5f, 0f);
+            CursorEditNode = new CursorGroup("edit_node");
+            CursorEditSegmentEnd = new CursorGroup("edit_segment_end");
+            CursorInsertCrossing = new CursorGroup("crossing");
+            CursorDefault = new CursorGroup("default");
 
-            CursorInsert = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorInsert.m_texture = TextureUtil.GetTextureFromFile("cursor_insert.png"); // green T node
-            CursorInsert.m_hotspot = new Vector2(5f, 0f);
-
-            CursorInsertCrossing = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorInsertCrossing.m_texture = TextureUtil.GetTextureFromFile("cursor_insert_crossing.png"); // green crossing.
-            CursorInsertCrossing.m_hotspot = new Vector2(5f, 0f);
-
-            CursorError = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorError.m_texture = TextureUtil.GetTextureFromFile("cursor_error.png"); // red gear
-            CursorError.m_hotspot = new Vector2(5f, 0f);
-
-            CursorSearching = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorSearching.m_texture = TextureUtil.GetTextureFromFile("cursor_searching.png"); // grey gear
-            CursorSearching.m_hotspot = new Vector2(5f, 0f);
-
-            CursorMoveCorner = ScriptableObject.CreateInstance<CursorInfo>();
-            CursorMoveCorner.m_texture = TextureUtil.GetTextureFromFile("cursor_move.png"); // 
-            CursorMoveCorner.m_hotspot = new Vector2(5f, 0f);
+            CursorMoveCorner = CreateCursor("cursor_remove_crossing.png");
+            CursorMoveCorner = CreateCursor("cursor_move.png");
         }
 
         public static NodeControllerTool Create() {
@@ -144,7 +169,7 @@ namespace NodeController.Tool {
 
         protected override void OnEnable() {
             try {
-                Log.Info("NodeControllerTool.OnEnable",true);
+                Log.Info("NodeControllerTool.OnEnable", true);
                 base.OnEnable();
                 Button?.Activate();
                 SelectedNodeID = 0;
@@ -154,8 +179,7 @@ namespace NodeController.Tool {
                     NodeManager.ValidateAndHeal(false);
                 });
                 TMPanel.Open();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Log.Exception(e);
             }
         }
@@ -176,7 +200,7 @@ namespace NodeController.Tool {
         void DragCorner() {
             SegmentEndData segEnd = SelectedSegmentEndData;
             if (SelectedSegmentEndData == null) return;
-            bool positionChanged = false;
+            bool positionChanged;
             bool selected = leftCornerSelected_ || rightCornerSelected_;
             if (selected) {
                 ref SegmentEndData.CornerData corner = ref segEnd.Corner(leftCornerSelected_);
@@ -212,7 +236,7 @@ namespace NodeController.Tool {
                         errors = NetUtil.InsertNode(m_controlPoint, out _, test: true);
                     }
                 } else {
-                    errors |= ToolBase.ToolErrors.RaycastFailed;
+                    errors = ToolBase.ToolErrors.RaycastFailed;
                 }
             }
 
@@ -222,21 +246,13 @@ namespace NodeController.Tool {
             }
             try {
                 this.m_errors = errors;
-            }
-            finally {
+            } finally {
                 Monitor.Exit(this.m_cacheLock);
             }
         }
 
 
         public string GetHint() {
-            // A)modify node: 
-            // B)insert middle (highway) 
-            // C)insert pedestrian
-            // D)searching(mouse is not hovering over road) 
-            // E)fail insert 
-            // G)inside panel 
-
             if (!this.enabled || !m_mouseRayValid || handleHovered_)
                 return null;
 
@@ -244,10 +260,11 @@ namespace NodeController.Tool {
                 return "drag => move corner\n" + "control + drag => move both corners";
 
             bool fail = false;
+            bool failCrossingNotSupported = fail;
             bool insert = false;
             bool searching = false;
             bool edit = false;
-            bool editSegmentEnd = fail;
+            bool editSegmentEnd = false;
             bool crossing = false;
 
             ToolErrors error = m_cachedErrors;
@@ -258,38 +275,77 @@ namespace NodeController.Tool {
                 insert = controlPoint.m_segment != 0;
                 if (edit) {
                     fail = !NodeData.IsSupported(nodeID);
-                    editSegmentEnd = nodeID.ToNode().m_flags.IsFlagSet(NetNode.Flags.End);
-                } else if (AltIsPressed) {
+                    editSegmentEnd = FinalToolMode == NCToolMode.EditSegmentEnd;
+                    editSegmentEnd |= nodeID.ToNode().m_flags.IsFlagSet(NetNode.Flags.End);
+                } else if (EditMode) {
                     searching = true;
                 } else if (insert) {
                     bool isRoad = !NetUtil.IsCSUR(m_prefab);
                     error |= m_prefab.m_netAI.CheckBuildPosition(false, false, true, true, ref controlPoint, ref controlPoint, ref controlPoint, out _, out _, out _, out _);
                     fail = error != ToolErrors.None || !isRoad;
                     crossing = m_prefab.CountPedestrianLanes() >= 2;
+                    if (FinalToolMode == NCToolMode.ToggleCrossing && !crossing) {
+                        fail = failCrossingNotSupported = true;
+                    }
                 }
             } else
                 searching = true;
 
             string ret = "";
 
-            if (searching)
-                ret = "hover over a network to select/insert node";
-            else if (fail) {
-                ret = "alt + click => select segment end.\ncannot insert node here ";
-                if (m_cachedErrors != ToolErrors.None)
-                    ret = "alt + click => select segment end.\ncannot insert node here because of " + error;
+            if(FinalToolMode == NCToolMode.Default) {
+                if (searching) {
+                    ret = "hover over a network to select node";
+                } else if (fail) {
+                    ret = "alt + click => select segment end.\ncannot insert node here";
+                    if (m_cachedErrors != ToolErrors.None)
+                        ret += " because of " + m_cachedErrors;
+                } else if (insert && crossing)
+                    ret = "click => insert crossing\n" + "alt + click => select segment end";
+                else if (insert && !crossing)
+                    ret = "click => insert new middle node\n" + "alt + click => select segment end";
+                else if (editSegmentEnd) {
+                    ret = "click => select segment end";
+                } else if (edit) {
+                    ret = "click => select node\n" + "alt + click  => select segment end";
+                } else
+                    return null;
+            } else if(FinalToolMode == NCToolMode.ToggleCrossing) {
+                if (searching) {
+                    ret = "hover over a network to toggle crossing";
+                } else if (fail) {
+                    ret = "cannot insert node here";
+                    if (failCrossingNotSupported)
+                        ret += ", crossing not supported";
+                    if (m_cachedErrors != ToolErrors.None)
+                        ret += ", " + m_cachedErrors;
+                } else if (insert || edit)
+                    ret = "click => toggle crossing\n";
                 else
-                    ret += "alt + click => select segment end.\ncannot insert node here ";
-            } else if (insert && crossing)
-                ret = "click => insert crossing\n" + "alt + click => select segment end";
-            else if (insert && !crossing)
-                ret = "click => insert new middle node\n" + "alt + click => select segment end";
-            else if (editSegmentEnd) {
-                ret = "click => select segment end";
-            } else if (edit) {
-                ret = "click => select node\n" + "alt + click  => select segment end";
-            } else
-                return null;
+                    return null;
+            } else if (editSegmentEnd) {
+                if (searching) {
+                    ret = "hover over a network to edit segment end";
+                } else if (fail) {
+                    ret = "cannot insert edit this segment end";
+                    if (m_cachedErrors != ToolErrors.None)
+                        ret += ", " + m_cachedErrors;
+                } else if (edit)
+                    ret = "click => select segment end\n" + "alt + click  => select node";
+                else
+                    return null;
+            } else if (FinalToolMode == NCToolMode.EditNode) {
+                if (searching) {
+                    ret = "hover over a network to edit node";
+                } else if (fail) {
+                    ret = "cannot insert edit this node";
+                    if (m_cachedErrors != ToolErrors.None)
+                        ret += ", " + m_cachedErrors;
+                } else if (edit)
+                    ret = "click => select node\n" + "alt + click  => select segment end";
+                else
+                    return null;
+            } 
 
             if (ShouldDrawSigns())
                 ret += "\ncontrol => hide TMPE overlay";
@@ -298,15 +354,7 @@ namespace NodeController.Tool {
         }
 
         CursorInfo GetCursor() {
-            // A)modify node: green pen
-            // B)insert middle (highway) green node
-            // C)insert pedestrian : green pedestrian
-            // D)searching(mouse is not hovering over road) grey geerbox
-            // E)fail insert red geerbox
-            // F)fail modify (end node) red geerbox.
-            // G)inside panel: normal
-
-            if (!this.enabled || !m_mouseRayValid || handleHovered_) // G
+            if (!this.enabled || !m_mouseRayValid || handleHovered_)
                 return null;
 
             if (CornerFocusMode)
@@ -317,6 +365,7 @@ namespace NodeController.Tool {
             bool searching = false;
             bool edit = false;
             bool crossing = false;
+            bool editSegmentEnd =false;
 
             if (IsHoverValid && m_prefab != null) {
                 NetTool.ControlPoint controlPoint = m_cachedControlPoint;
@@ -325,33 +374,66 @@ namespace NodeController.Tool {
                 insert = controlPoint.m_segment != 0;
                 if (edit) {
                     fail = !NodeData.IsSupported(nodeID);
-                } else if (AltIsPressed) {
+                    editSegmentEnd = FinalToolMode == NCToolMode.EditSegmentEnd;
+                    editSegmentEnd |= nodeID.ToNode().m_flags.IsFlagSet(NetNode.Flags.End);
+                } else if (EditMode) {
                     searching = true;
                 } else if (insert) {
                     bool isRoad = !NetUtil.IsCSUR(m_prefab);
                     ToolErrors error = m_cachedErrors;
                     error |= m_prefab.m_netAI.CheckBuildPosition(false, false, true, true, ref controlPoint, ref controlPoint, ref controlPoint, out _, out _, out _, out _);
                     fail = error != ToolErrors.None || !isRoad;
-                    crossing = m_prefab.CountPedestrianLanes() >= 2;
+                    crossing = NodeManager.CanInsertCrossing(m_prefab);
+                    if (FinalToolMode == NCToolMode.ToggleCrossing) {
+                        fail &= !crossing;
+                    }
                 }
-            } else
-                searching = true;
+            }
 
-            if (searching)
-                return CursorSearching;
+            if (fail) {
+                switch (FinalToolMode) {
+                    case NCToolMode.Default:
+                        return CursorDefault.Fail;
+                    case NCToolMode.EditNode:
+                        return CursorEditNode.Fail;
+                    case NCToolMode.EditSegmentEnd:
+                        return CursorEditSegmentEnd.Fail;
+                    case NCToolMode.ToggleCrossing:
+                        return CursorInsertCrossing.Fail;
+                    default:
+                        throw new Exception("unhandled mode:" + FinalToolMode);
+                }
+            }
 
-            if (fail)
-                return CursorError;
+            if (edit) {
+                if (FinalToolMode == NCToolMode.ToggleCrossing)
+                    return CursorInsertCrossing.Success;
+                if (editSegmentEnd)
+                    return CursorEditSegmentEnd.Success;
+                else
+                    return CursorEditNode.Success;
+            }
+            if (insert) {
+                if (crossing)
+                    return CursorInsertCrossing.Success;
+                else
+                    return CursorDefault.Success;
+            }
 
-            if (insert && crossing)
-                return CursorInsertCrossing;
-
-            if (insert && !crossing)
-                return CursorInsert;
-
-            if (edit)
-                return CursorEdit;
-
+            if (searching) {
+                switch (FinalToolMode) {
+                    case NCToolMode.Default:
+                        return CursorDefault.Searching;
+                    case NCToolMode.EditNode:
+                        return CursorEditNode.Searching;
+                    case NCToolMode.EditSegmentEnd:
+                        return CursorEditSegmentEnd.Searching;
+                    case NCToolMode.ToggleCrossing:
+                        return CursorInsertCrossing.Searching;
+                    default:
+                        throw new Exception("unhandled mode:" + FinalToolMode);
+                }
+            }
             return null; // race condition
         }
 
@@ -362,20 +444,14 @@ namespace NodeController.Tool {
             ToolCursor = GetCursor();
             Hint = GetHint();
 
-            while (!Monitor.TryEnter(this.m_cacheLock, SimulationManager.SYNCHRONIZE_TIMEOUT)) {
-            }
-            try {
+            lock (m_cacheLock) {
                 m_cachedControlPoint = m_controlPoint;
                 m_cachedErrors = m_errors;
-            }
-            finally {
-                Monitor.Exit(this.m_cacheLock);
-            }
-
-            if (HoveredSegmentId != 0) {
-                m_prefab = HoveredSegmentId.ToSegment().Info;
-            } else {
-                m_prefab = null;
+                if (HoveredSegmentId != 0) {
+                    m_prefab = HoveredSegmentId.ToSegment().Info;
+                } else {
+                    m_prefab = null;
+                }
             }
         }
 
@@ -397,14 +473,6 @@ namespace NodeController.Tool {
         //Vector3 _cachedHitPos;
         public ushort SelectedNodeID;
         public ushort SelectedSegmentID;
-
-        static bool CanSelectSegmentEnd(ushort segmentID, ushort nodeID) {
-            if (nodeID == 0 || segmentID == 0)
-                return false;
-            if (!NodeData.IsSupported(nodeID))
-                return false;
-            return true;// nodeID.ToNode().m_flags.IsFlagSet(NetNode.Flags.Junction);
-        }
 
         /// <param name="left">going away from junction</param>
         CornerMarker GetCornerMarker(bool left) {
@@ -465,21 +533,24 @@ namespace NodeController.Tool {
             if (!m_mouseRayValid || handleHovered_)
                 return;
 
-            if (AltIsPressed) {
+            if (FinalToolMode == NCToolMode.EditSegmentEnd) {
                 RenderHoveredSegmentEnd(cameraInfo);
             } else if (IsHoverValid && m_prefab != null) {
                 NetTool.ControlPoint controlPoint = m_cachedControlPoint;
                 if (controlPoint.m_node != 0) {
-                    bool fail = !NodeData.IsSupported(controlPoint.m_node);
                     if (controlPoint.m_node.ToNode().m_flags.IsFlagSet(NetNode.Flags.End)) {
                         RenderHoveredSegmentEnd(cameraInfo);
                     } else {
+                        bool fail = !NodeData.IsSupported(controlPoint.m_node);
                         DrawNodeCircle(cameraInfo, GetColor(fail), controlPoint.m_node, false);
                     }
                 } else if (controlPoint.m_segment != 0) {
                     ToolErrors error = m_cachedErrors;
                     error |= m_prefab.m_netAI.CheckBuildPosition(false, false, true, true, ref controlPoint, ref controlPoint, ref controlPoint, out _, out _, out _, out _);
                     bool fail = error != ToolErrors.None || NetUtil.IsCSUR(m_prefab);
+                    if (FinalToolMode == NCToolMode.ToggleCrossing
+                        && !NodeManager.CanInsertCrossing(m_prefab))
+                        fail = true;
                     Color color = GetColor(fail, true);
                     RenderStripOnSegment(cameraInfo, controlPoint.m_segment, controlPoint.m_position, 1.5f, color);
                 }
@@ -488,13 +559,14 @@ namespace NodeController.Tool {
         }
 
         void RenderHoveredSegmentEnd(RenderManager.CameraInfo cameraInfo) {
-            if (CanSelectSegmentEnd(nodeID: HoveredNodeId, segmentID: HoveredSegmentId)) {
+            bool fail = !NodeData.IsSupported(HoveredNodeId);
+            if (!fail) {
                 DrawCutSegmentEnd(
                 cameraInfo,
                 HoveredSegmentId,
                 0.5f,
                 NetUtil.IsStartNode(segmentId: HoveredSegmentId, nodeId: HoveredNodeId),
-                Color.yellow,
+                GetColor(fail),
                 alpha: true);
             }
         }
@@ -565,9 +637,9 @@ namespace NodeController.Tool {
         protected override void OnPrimaryMouseClicked() {
             if (!IsHoverValid || handleHovered_ || CornerFocusMode)
                 return;
-            Log.Info($"OnPrimaryMouseClicked: segment {HoveredSegmentId} node {HoveredNodeId}",true);
-            if (AltIsPressed) {
-                if (CanSelectSegmentEnd(nodeID: HoveredNodeId, segmentID: HoveredSegmentId)) {
+            Log.Info($"OnPrimaryMouseClicked: segment {HoveredSegmentId} node {HoveredNodeId}", true);
+            if (FinalToolMode == NCToolMode.EditSegmentEnd) {
+                if (NodeData.IsSupported(HoveredNodeId)) {
                     SelectedSegmentID = HoveredSegmentId;
                     SelectedNodeID = HoveredNodeId;
                     SECPanel.Display(
@@ -598,9 +670,11 @@ namespace NodeController.Tool {
                     NCPanel.Display(SelectedNodeID);
                 }
             } else if (c.m_segment != 0) {
+                if (FinalToolMode == NCToolMode.ToggleCrossing && !NodeManager.CanInsertCrossing(m_prefab))
+                    return;
                 if (!NetUtil.IsCSUR(m_prefab)) {
                     SimulationManager.instance.AddAction(delegate () {
-                        NodeData nodeData = NodeManager.Instance.InsertNode(c);
+                        NodeData nodeData = NodeManager.Instance.InsertNode(m_controlPoint);
                         SimulationManager.instance.m_ThreadingWrapper.QueueMainThread(delegate () {
                             if (nodeData != null) {
                                 SelectedNodeID = nodeData.NodeID;
@@ -672,5 +746,13 @@ namespace NodeController.Tool {
             //Log.Debug("MakeControlPoint: on segment.");
             return true;
         }
+
+
+
+
+
     } //end class
+
+
+
 }

@@ -74,14 +74,16 @@ namespace NodeController {
             }
 
             var info = controlPoint.m_segment.ToSegment().Info;
-            int nPedLanes = info.CountPedestrianLanes();
-            bool isRoad = info.m_netAI is RoadBaseAI;
-            if (nodeType == NodeTypeT.Crossing && (nPedLanes < 2 || !isRoad))
+            if (nodeType == NodeTypeT.Crossing && CanInsertCrossing(info))
                 buffer[nodeID] = new NodeData(nodeID);
             else
                 buffer[nodeID] = new NodeData(nodeID, nodeType);
 
             return buffer[nodeID];
+        }
+
+        public static bool CanInsertCrossing(NetInfo info) {
+            return info.CountPedestrianLanes() > 2 && !info.m_netAI is RoadBaseAI;
         }
 
         public ref NodeData GetOrCreate(ushort nodeID) {

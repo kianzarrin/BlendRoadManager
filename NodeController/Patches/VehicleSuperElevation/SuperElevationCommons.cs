@@ -42,8 +42,20 @@ namespace NodeController.Patches.VehicleSuperElevation {
             return pathUnitBuffer[vehicleData.m_path].GetPosition(pathIndex >> 1, out pathPos);
         }
 
-        internal static NetInfo.Lane GetLaneInfo(this ref PathUnit.Position pathPos) =>
-            pathPos.m_segment.ToSegment().Info.m_lanes[pathPos.m_lane];
+        internal static NetInfo.Lane GetLaneInfo(this ref PathUnit.Position pathPos) {
+            try {
+                ushort segmentID = pathPos.m_segment;
+                byte laneIndex = pathPos.m_lane;
+                NetUtil.AssertSegmentValid(segmentID);
+                var laneInfos = segmentID.ToSegment().Info.m_lanes;
+                AssertGT(laneInfos.Length, laneIndex, $"lane index out of range");
+                return laneInfos[laneIndex];
+            }catch(Exception ex) {
+                var segmentInfo = pathPos.m_segment.ToSegment().Info;
+                Log.Exception(ex, $"Exception occured at segment:{pathPos.m_segment} {segmentInfo}");
+                throw ex;
+            }
+        }
 
         internal static float GetCurrentSE(PathUnit.Position pathPos, float offset, ref Vehicle vehicleData) {
             if (float.IsNaN(offset) || float.IsInfinity(offset)) return 0;
